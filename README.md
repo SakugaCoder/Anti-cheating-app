@@ -3,7 +3,7 @@
 Sistema para prevención de fraude en examenes en linea utilizando **python 3.7.4**
 
 ## Funcionalidades principales
-***
+
 ### Detección de procesos no autorizados.
 
 Por medio de el monitoreo de los proceso en ejecuón y una lista de proceso baneados llamada **banned.csv**. Se lleva a cabo un registro **(log)** de las acciones indevidas que el usuario realizo.
@@ -28,7 +28,6 @@ Al finalizar la prueba se enviara directamente el archivo log con los resultados
 
 
 ## GUI
-***
 La interfaz de usuario cuenta con dos ventanas:
 
 * **Ventana de inicio de prueba por medio de codigo**.
