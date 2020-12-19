@@ -3,19 +3,22 @@ from datetime import datetime
 from pathlib import Path
 import logging
 import os
-import pyAesCrypt
 import sqlite3
-import tarfile
-import time
-import shutil
 
+
+# Definición de directorios de los archivos
 RESULT_DIRECTORY = str(Path.home()).replace("\\", "/")+"/.anca/assets/log/"
 DB_DIR = str(Path.home()).replace("\\", "/")+"/.anca/assets/"
 
+
+# Creación de la clase LogFile
 class LogFile:
 
+    # Inicialización del objeto
     def __init__(self):
+        # Crea objeto conexión y cursor para manipulación de BD
         con, cursor = self.con_database()
+        # Intenta crear base de datos si no existe
         try:
             cursor.execute(''' CREATE TABLE student 
                         (name text, _group text, start_datetime text,
@@ -27,89 +30,139 @@ class LogFile:
         except Exception as e:
             print(e)
 
+        # Obtiene los archivos del directorio de resultados
         files = os.listdir(RESULT_DIRECTORY)
 
+        # Si no existen archivos crea el archivo log en caso contrario lo asigna al nombre del archivo de la clase
         if len(files) == 0:
             self.filename = f"f_{datetime.timestamp(datetime.now())}"
         else:
             self.filename = files[0]
 
-
-    def con_database(self):
+    # Método para conecar a la base de datos a partir del directorio definido para BD
+    # Retorna objeto de conexión y cursor
+    @staticmethod
+    def con_database():
         con = sqlite3.connect(f"{DB_DIR}/student.db")
         cursor = con.cursor()
         return con, cursor
 
+    # Método para actualizar campos de la basde de datos sqlite
+    # Recibe como parametro el nombre del campo y el valor de este
     def set_db_field(self, field, value):
+        # Crea objeto conexión y cursor para manipulación de BD
         con, cursor = self.con_database()
+        # Intenta realizar operaciones en la BD
         try:
+            # Inserta valor dependiendo si es entero o cadena de caracteres
             if type(value) is int:
                 cursor.execute(f"UPDATE student set {field} = {value}")
             else:
                 cursor.execute(f"UPDATE student set {field} = '{value}'")
+            # Guarda cambios en BD y cierra conexión
             con.commit()
             con.close()
             # print("Campo actualizado")
             return True
 
+        # Captura error y termina conexión
         except Exception as e:
+            print(e)
             print("Error setting field on DB")
             con.close()
             return False
 
+    # Método para escribir información en archivo de texto
+    # Recibe como parametros la cadena de caracteres(data) y el nombre del
+    # archivo (filename=None) que por defecto es None
     def write_data(self, data, filename=None):
+        # Inicializa la variable file
         file = None
+        # Intenta escribir en archivo
         try:
+            # Si el nombre del archivo no es None se procede a abrir el archivo con ese misma variable
             if filename is not None:
                 file = open(RESULT_DIRECTORY+filename, "w")
+            # Si no se escribio un nombre de archivo se utiliza el nombre guardado al inicializar el objeto
             else:
                 file = open(RESULT_DIRECTORY+self.filename, "a")
+            # Escribe información pasada
             file.write(data)
             logging.info(f"The data: '{data}' has been written down")
+        # Captura error de escritura/apertura de archivo
         except Exception as e:
+            print(e)
             logging.error("Error writing data in file")
+        # Cierra la escritura del archivo
         file.close()
 
+    # Método para agregar un proceso prohibido en el archivo log y la BD
     def add_banned_process(self, process_data):
+        # Obtiene detalle archivo
         name = process_data['name']
         alias = process_data['alias']
         time = process_data['time']
+        # Escribe información en el archivo log
         self.write_data(f"Process: {name}, Alias: {alias}, Time: {time}\n")
+        # Escribe información en la BD
         self.set_db_field("cheated", 1)
 
+    # Método para agregar un dispositivo USB/SD al archivo log y BD
     def add_media_connected(self, dev_caption):
+        # Escribe información en el archivo log
         self.write_data(f"Dev: {dev_caption}, Datetime: {datetime.now().isoformat()}\n")
+        # Escribe información en la BD
         self.set_db_field("usb_plugged", 1)
 
+    # Método para agregar el retraso en término de la prueba en archivo log y BD
     def add_no_on_time(self):
+        # Escribe información en el archivo log
         # self.write_data(f"Dev: {dev_caption}, Datetime: {datetime.now().isoformat()}\n")
+        # Escribe información en la BD
         self.set_db_field("on_time", 0)
-        print("Setting on time false")
 
+    # Método para agregar el nombre del usuario al archivo log y BD
     def add_username(self, username):
+        # Escribe información en el archivo log
         self.write_data(f"Username: {username}\n")
+        # Escribe información en la BD
         self.set_db_field("name", username)
 
+    # Método para agregar el grupo al archivo log y BD
     def add_group(self, group):
+        # Escribe información en el archivo log
         self.write_data(f"Group: {group}\n")
+        # Escribe información en la BD
         self.set_db_field("_group", group)
 
+    # Mpetodo para agregar actividad a la BD
     def add_activity(self):
         last_scanned = datetime.now().isoformat()
         # self.write_data(f"Last scanned: {last_scanned}\n", self.last_scanned_file_name)
+        # Escribe información en la BD
         self.set_db_field("last_scanned", last_scanned)
 
+    # Método para agregar fecha y hora de termino de la prueba en el archivo log y BD
     def add_finish_time(self, finished_hour):
+        # Escribe información en el archivo log
         self.write_data(f"Finished: {finished_hour}\n")
+        # Escribe información en la BD
         self.set_db_field("end_datetime", finished_hour)
 
+    # Método para agregar fecha y hora de inicio de la prueba en el archivo log y BD
     def add_start_time(self, start_hour):
+        # Escribe información en el archivo log
         self.write_data(f"Start: {start_hour}\n")
+        # Escribe información en la BD
         self.set_db_field("start_datetime", start_hour)
 
+    # Método para agregar nombre de archivo de prueba en el archivo log
     def add_test(self, test_path):
+        # Escribe información en el archivo log
         self.write_data(f"Test path: {test_path}\n")
 
+    # Método para obtener nombre del usuario desde la BD
+    # retorna cadena de caracteres
     def get_username(self):
         con, cursor = self.con_database()
         r = cursor.execute("SELECT name FROM student")
@@ -117,76 +170,3 @@ class LogFile:
         print(f"username: {username}")
         con.close()
         return username
-
-
-def decript_file(file_path):
-    file_name = file_path.split('.aes')[0]
-    file_path = "Exams/"+file_path
-    buffer_size = 1024 * 64
-    password = "secret"
-    enc_file_size = os.stat(file_path).st_size
-    # decrypt
-    with open(file_path, "rb") as fIn:
-        try:
-            with open(f"Exams/Results/{file_name}.tar", "wb") as fOut:
-                # decrypt file stream
-                pyAesCrypt.decryptStream(fIn, fOut, password, buffer_size, enc_file_size)
-        except ValueError:
-            # remove output file on error
-            os.remove(f"Exams/Results/{file_name}.tar")
-
-
-def decrypt_files():
-    files = os.listdir('Exams')
-    try:
-        os.mkdir("Exams/Results/")
-    except Exception as e:
-        print(e)
-    for file in files:
-        file_name = file.split(".aes")[0]
-        decript_file(f'{file}')
-
-        time.sleep(0.5)
-        tar_filename = "Exams/Results/"+file.split(".aes")[0]+".tar"
-        current_tar = tarfile.open(tar_filename)
-
-        dir_name = f'./Exams/Results/{file_name}'
-        current_tar.extractall(dir_name)
-        current_tar.close()
-        os.remove(tar_filename)
-
-        time.sleep(0.5)
-        username = os.listdir(f'Exams/Results/{file_name}/Users/')[0]
-        db_path = f'Exams/Results/{file_name}/Users/{username}/.anca/assets/student.db'
-
-        con = sqlite3.connect(db_path)
-        cursor = con.cursor()
-        r = cursor.execute("SELECT * FROM student")
-        res = r.fetchone()
-        group = res[1]
-        cheated = res[4]
-        usb_plugged = res[5]
-
-        con.close()
-
-        bad_behavior = True if cheated or usb_plugged else False
-
-        group_folder = f"Exams/Results/{group}/"
-        try:
-            os.mkdir(group_folder)
-            os.mkdir(group_folder+"/trampa")
-            os.mkdir(group_folder+"/normal")
-
-        except Exception as e:
-            # Grupo ya existe
-            print(e)
-
-        if bad_behavior:
-            shutil.move(dir_name, group_folder+"/trampa")
-        else:
-            shutil.move(dir_name, group_folder + "/normal")
-
-        print(res)
-        con.close()
-
-#decrypt_files()
