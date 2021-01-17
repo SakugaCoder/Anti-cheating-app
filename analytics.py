@@ -1,6 +1,6 @@
 import tkinter
 from tkinter.filedialog import askdirectory
-
+from tkinter import messagebox
 import os
 import shutil
 import pyAesCrypt
@@ -58,6 +58,22 @@ class AnalyticsUI:
         # Indicador para 'A tiempo'
         self.on_time_indicator = tkinter.Label(self.master, bg='gray')
         self.on_time_indicator.place(x=280, y=40, width=20, height=20)
+
+        # Entrada de texto para hora validar hora inicio
+        start_datetime_label = tkinter.Label(self.master, text='Inicio')
+        start_datetime_label.place(x=50, y=70, width=28, height=20)
+
+        start_datetime_tv = tkinter.StringVar(master=self.master, value='2021-01-17 15:00')
+        self.start_datetime_entry = tkinter.Entry(self.master, textvar=start_datetime_tv)
+        self.start_datetime_entry.place(x=85, y=70, width=100, height=20)
+
+        # Entrada de texto para hora validar hora final
+        end_datetime_label = tkinter.Label(self.master, text='Fin')
+        end_datetime_label.place(x=200, y=70, width=28, height=20)
+
+        end_datetime_tv = tkinter.StringVar(master=self.master, value='2021-01-17 16:00')
+        self.end_datetime_entry = tkinter.Entry(self.master, textvar=end_datetime_tv)
+        self.end_datetime_entry.place(x=230, y=70, width=100, height=20)
 
         # Botón para seleccionar dicrectorio (abre cuadro de dialogo)
         button_add_directory = tkinter.Button(self.master, text='Seleccionar directorio', command=self.open_folder)
@@ -176,19 +192,19 @@ class AnalyticsUI:
             # en color verde indicando que si existio actividad durante la prueba en el campo mostrado
             # en caso contradio cambia el indicador a un color rojo
             if cheated == 1:
-                self.cheated_indicator.config(bg='green')
-            else:
                 self.cheated_indicator.config(bg='red')
+            else:
+                self.cheated_indicator.config(bg='green')
 
             if usb_plugged == 1:
-                self.usb_connected_indicator.config(bg='green')
-            else:
                 self.usb_connected_indicator.config(bg='red')
+            else:
+                self.usb_connected_indicator.config(bg='green')
 
             if on_time == 0:
-                self.on_time_indicator.config(bg='green')
-            else:
                 self.on_time_indicator.config(bg='red')
+            else:
+                self.on_time_indicator.config(bg='green')
 
             # Cierra la conexión con la BD
             con.close()
@@ -261,112 +277,193 @@ class AnalyticsUI:
 
     # Función para desencriptar multiples archivos
     def decrypt_files(self):
-        # Establece label del directorio con mensaje 'Procesando examenes...'
-        self.textvar_label_main_folder.set('Procesando examenes...')
-        # Cambia color del label del directorio a un color naranja
-        self.label_main_folder.config(bg='orange')
+        self.listbox_student.delete(0, tkinter.END)
+        self.listbox_group.delete(0, tkinter.END)
+        if len(self.start_datetime_entry.get()) == 16 and len(self.end_datetime_entry.get()) == 16:
+            # Establece label del directorio con mensaje 'Procesando examenes...'
+            self.textvar_label_main_folder.set('Procesando examenes...')
+            # Cambia color del label del directorio a un color naranja
+            self.label_main_folder.config(bg='orange')
 
-        # Espera 2 segundos
-        time.sleep(2)
-        # Lista archivos en el directorio actual (seleccionado en cuadro de dialogo)
-        files = os.listdir(self.dir_name)
-
-        # Trata de crear directorio de resultados (si es que no existe)
-        try:
-            os.mkdir(f"{self.dir_name}/Results/")
-
-        # Si se encuentra un error se procede a eliminar el directorio y volver a crearlo
-        except Exception as e:
-            print(e)
-            shutil.rmtree(f"{self.dir_name}/Results/")
+            # Espera 2 segundos
+            # time.sleep(2)
+            # Lista archivos en el directorio actual (seleccionado en cuadro de dialogo)
             files = os.listdir(self.dir_name)
-            os.mkdir(f"{self.dir_name}/Results/")
 
-        # Itera sobre los archivos de la carpeta seleccionada
-        for file in files:
-            # Obtiene nombre del archivo
-            file_name = file.split(".aes")[0]
-
-            # Desencripta archivo
-            self.decrypt_file(f'{file}')
-
-            # Espera 0.5 segundos
-            time.sleep(0.5)
-            # Establece el nombre del archivo tar
-            tar_filename = f"{self.dir_name}/Results/"+file.split(".aes")[0]+".tar"
-            # Abre el archivo tar
-            current_tar = tarfile.open(tar_filename)
-
-            # Establece el nombre del directorio
-            dir_name = f'{self.dir_name}/Results/{file_name}'
-            # Extrae el archivo tar en el directorio seleccionado
-            current_tar.extractall(dir_name)
-            # Cierra archivo tar
-            current_tar.close()
-            # Elimina archivo tar
-            os.remove(tar_filename)
-
-            # Espera 0.5 segundos
-            time.sleep(0.5)
-
-            # Obtiene el username del archivo/estudiante actual
-            username = os.listdir(f'{self.dir_name}/Results/{file_name}/Users/')[0]
-            # Establece la dirección de la base de datos
-            db_path = f'{self.dir_name}/Results/{file_name}/Users/{username}/.anca/assets/student.db'
-
-            # Crea objeto de conexión a la base de datos
-            con = sqlite3.connect(db_path)
-            cursor = con.cursor()
-
-            # Ejecuta consulta para obtener datos de estudiante
-            r = cursor.execute("SELECT * FROM student")
-            # Obtiene resultado
-            res = r.fetchone()
-
-            # Establece el resultado en cada campo correspondiente
-            group = res[1]
-            cheated = res[4]
-            usb_plugged = res[5]
-            on_time = res[6]
-
-            # Cierra la conexión con la BD
-            con.close()
-
-            # Bandera para detectar trampa (compara los campos obtenidos de la BD)
-            bad_behavior = True if cheated or usb_plugged or on_time == 0 else False
-
-            # Establece directorio para el nombre del grupo
-            group_folder = f"{self.dir_name}/Results/{group}/"
-
-            # Trata de crear directorios para grupo
+            # Trata de crear directorio de resultados (si es que no existe)
             try:
+                os.mkdir(f"{self.dir_name}/Results/")
 
-                os.mkdir(group_folder)
-                os.mkdir(group_folder+"/trampa")
-                os.mkdir(group_folder+"/normal")
-
-            # Si se genera error indica que ya esta creado
+            # Si se encuentra un error se procede a eliminar el directorio y volver a crearlo
             except Exception as e:
-                # Grupo ya existe
-                print(e)
-            # Si el estudiante cuenta con mal comportamiento se mueve a carpeta 'trampa'
-            # de lo contrario se mueve a carpeta 'normal' para realizar el filtrado
-            if bad_behavior:
-                shutil.move(dir_name, group_folder+"/trampa")
-            else:
-                shutil.move(dir_name, group_folder + "/normal")
+                # print(e)
+                shutil.rmtree(f"{self.dir_name}/Results/")
+                files = os.listdir(self.dir_name)
+                os.mkdir(f"{self.dir_name}/Results/")
 
-            # print(res)
+            # Itera sobre los archivos de la carpeta seleccionada
+            for file in files:
+                # Obtiene nombre del archivo
+                file_name = file.split(".aes")[0]
 
-            # Cierra conexión
-            con.close()
+                # Desencripta archivo
+                self.decrypt_file(f'{file}')
 
-        # Establece label de directorio con mensaje de exito y cambia su color de fondo a verde
-        self.textvar_label_main_folder.set('Examenes procesados')
-        self.label_main_folder.config(bg='green')
+                # Espera 0.5 segundos
+                time.sleep(0.5)
+                # Establece el nombre del archivo tar
+                tar_filename = f"{self.dir_name}/Results/"+file.split(".aes")[0]+".tar"
+                # Abre el archivo tar
+                current_tar = tarfile.open(tar_filename)
 
-        # Al finalizar llama al método para obtener los grupos
-        self.fill_group_data()
+                # Establece el nombre del directorio
+                dir_name = f'{self.dir_name}/Results/{file_name}'
+                # Extrae el archivo tar en el directorio seleccionado
+                current_tar.extractall(dir_name)
+                # Cierra archivo tar
+                current_tar.close()
+                # Elimina archivo tar
+                os.remove(tar_filename)
+
+                # Espera 0.5 segundos
+                time.sleep(0.5)
+
+                # Obtiene el username del archivo/estudiante actual
+                username = os.listdir(f'{self.dir_name}/Results/{file_name}/Users/')[0]
+                # Establece la dirección de la base de datos
+                db_path = f'{self.dir_name}/Results/{file_name}/Users/{username}/.anca/assets/student.db'
+
+                # Crea objeto de conexión a la base de datos
+                con = sqlite3.connect(db_path)
+                cursor = con.cursor()
+
+                # Ejecuta consulta para obtener datos de estudiante
+                r = cursor.execute("SELECT * FROM student")
+                # Obtiene resultado
+                res = r.fetchone()
+
+                # Establece el resultado en cada campo correspondiente
+                group = res[1]
+                cheated = res[4]
+                usb_plugged = res[5]
+                on_time = res[6]
+
+                start_dt = res[2]
+                end_dt = res[3]
+
+                # -----------------------------------
+                print("################################")
+                # Fecha y tiempo de inicio del estudiante
+                start_date = start_dt.split('T')[0]
+                start_time = (start_dt.split('T'))[1].split(':')
+                start_time_hour = start_time[0]
+                start_time_minute = start_time[1]
+                start_time = int(start_time_hour+start_time_minute)
+
+                print(f'Student start datetime: {start_date} - {start_time}')
+
+                # Fecha y tiempo de termino del estudiante
+                end_date = end_dt.split('T')[0]
+                end_time = (end_dt.split("T")[1]).split(':')
+                end_time_hour = end_time[0]
+                end_time_minute = end_time[1]
+                end_time = int(end_time_hour+end_time_minute)
+
+                print(f'Student end datetime: {end_date} - {end_time}')
+
+                # Fecha y tiempo de inicio a validar
+                actual_start_datetime = self.start_datetime_entry.get()
+                actual_start_date = actual_start_datetime.split(' ')[0]
+                actual_start_time = actual_start_datetime.split(' ')[1]
+                actual_hour_start = actual_start_time.split(":")[0]
+                actual_minute_start = actual_start_time.split(":")[1]
+                actual_start_time = int(actual_hour_start+actual_minute_start)
+
+                print(f'Valid start datetime: {actual_start_date} - {actual_start_time}')
+
+                # Tiempo final a validar
+                actual_end_datetime = self.end_datetime_entry.get()
+                actual_end_date = actual_end_datetime.split(' ')[0]
+                actual_end_time = actual_end_datetime.split(' ')[1]
+                actual_hour_end = actual_end_time.split(":")[0]
+                actual_minute_end = actual_end_time.split(":")[1]
+                actual_end_time = int(actual_hour_end+actual_minute_end)
+
+                print(f'Valid end datetime: {actual_end_date} - {actual_end_time}')
+                print("################################")
+
+                # Verifica que el estudiante termino a tiempo
+                on_datetime = False
+                if start_date == actual_start_date == end_date:
+                    if start_time >= actual_start_time and end_time <= actual_end_time:
+                        on_datetime = True
+                        print('Yeah a tiempo')
+                    else:
+                        print('Reprobado')
+                else:
+                    print('Reprobado')
+
+                # Si no estuvo a tiempo actualiza la bd para que al procesar los archivos sqlite por separado
+                # se pueda mostrar graficamente el estado
+                try:
+                    # Ejecuta consulta de actualización en la BD
+                    cursor.execute(f"UPDATE student set on_time = {int(on_datetime)}")
+
+                    # Guarda cambios en BD y cierra conexión
+                    con.commit()
+                    # print("Campo actualizado")
+
+                    # Captura error y termina conexión
+                except Exception as e:
+                    print(e)
+                    print("Error setting field on DB")
+                # -----------------------------------
+
+                # Cierra la conexión con la BD
+                con.close()
+
+                # Bandera para detectar trampa (compara los campos obtenidos de la BD)
+                bad_behavior = True if cheated or usb_plugged or not on_datetime else False
+
+                # Establece directorio para el nombre del grupo
+                group_folder = f"{self.dir_name}/Results/{group}/"
+
+                # Trata de crear directorios para grupo
+                try:
+
+                    os.mkdir(group_folder)
+                    os.mkdir(group_folder+"/trampa")
+                    os.mkdir(group_folder+"/normal")
+
+                # Si se genera error indica que ya esta creado
+                except Exception as e:
+                    pass
+                    # Grupo ya existe
+                    # print(e)
+                # Si el estudiante cuenta con mal comportamiento se mueve a carpeta 'trampa'
+                # de lo contrario se mueve a carpeta 'normal' para realizar el filtrado
+                if bad_behavior:
+                    shutil.move(dir_name, group_folder+"/trampa")
+                else:
+                    shutil.move(dir_name, group_folder + "/normal")
+
+                # print(res)
+
+                # Cierra conexión
+                con.close()
+
+            # Establece label de directorio con mensaje de exito y cambia su color de fondo a verde
+            self.textvar_label_main_folder.set('Examenes procesados')
+            self.label_main_folder.config(bg='green')
+
+            # Al finalizar llama al método para obtener los grupos
+            self.fill_group_data()
+
+        else:
+            messagebox.showerror(
+                title='Error',
+                message='Favor de ingresar una fecha de inicio y fin valida'
+            )
 
     # Método para llenar el listbox con nombres de los estudiantes del grupo seleccionado
     def fill_student_data(self, group):

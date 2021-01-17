@@ -228,8 +228,8 @@ def monitor_usb(first_scan=False):
     # Variable para guardar un objeto de Windows Management Instrumentation (WMI)
     c = wmi.WMI()
 
-    # Mientras no termine la prueba se se ejecuta el proceso
-    while not test_finished:
+    # Mientras no termine la prueba o no se encuetre USB se ejecuta el proceso
+    while not test_finished and not usb_plugged:
         # Itera sobre unidades de disco conectadas en el ordenador
         for drive in c.Win32_DiskDrive():
             # Guarda etiqueta de dispositio en letra mayuscula
@@ -252,7 +252,7 @@ def monitor_usb(first_scan=False):
                     print("SD detected")
 
                     # Si no es el primer escaneo se envia mensaje y se agrega al archivo log la actividad
-                    if not first_scan:
+                    if not first_scan and not usb_plugged:
                         tkinter.messagebox.showerror("SD detectado", "Se reportara esta acción")
                         log_file.add_media_connected(drive.caption)
 
@@ -268,22 +268,17 @@ def monitor_usb(first_scan=False):
 
 # Función para inicializar la prueba en linea
 def start_test():
-    os.startfile("sb.url")
-    """
     # Variables globales
     global monitor_processes_thread, monitor_time_thread, monitor_usb_thread
     global btn_start_test, btn_upload_test, btn_finish_test
     global user_full_name
     global TEST_STARTED
     
-    
     if not TEST_STARTED:
         monitor_time_thread.start()
         monitor_processes_thread.start()
         monitor_usb_thread.start()
         TEST_STARTED = True
-    else:
-    """
 
 # Función para cargar arhcivo adjunto de la prueba
 def upload_test():
@@ -364,7 +359,7 @@ def finish_test():
             if CHEATING_FLAG and TEST_NOT_FINISHED_ON_TIME_FLAG:
                 print("Usuario no termino a tiempo y hizo trampa")
                 # create_result_file(3)
-                log_file.add_no_on_time()
+                # log_file.add_no_on_time()
 
             elif CHEATING_FLAG:
                 print("Usuario hizo trampa")
@@ -373,7 +368,7 @@ def finish_test():
             elif TEST_NOT_FINISHED_ON_TIME_FLAG:
                 print("Usuario no termino a tiempo")
                 # create_result_file(2)
-                log_file.add_no_on_time()
+                # log_file.add_no_on_time()
             else:
                 print("Usuario termino a tiempo y no hizo trampa")
                 #create_result_file(0)
@@ -416,7 +411,7 @@ def finish_test():
         if CHEATING_FLAG and TEST_NOT_FINISHED_ON_TIME_FLAG:
             print("Usuario no termino a tiempo y hizo trampa")
             # create_result_file(3)
-            log_file.add_no_on_time()
+            # log_file.add_no_on_time()
         elif CHEATING_FLAG:
             print("Usuario hizo trampa")
             # create_result_file(1)
@@ -424,7 +419,7 @@ def finish_test():
         elif TEST_NOT_FINISHED_ON_TIME_FLAG:
             print("Usuario no termino a tiempo")
             # create_result_file(2)
-            log_file.add_no_on_time()
+            # log_file.add_no_on_time()
         else:
             print("Usuario termino a tiempo y no hizo trampa")
             # create_result_file(0)
@@ -588,7 +583,7 @@ def main():
             window,
             text="Iniciar prueba en linea",
             font=("Open Sans", 10),
-            command=start_test
+            command=lambda:os.startfile("sb.url")
         )
 
         btn_start_test.place(
