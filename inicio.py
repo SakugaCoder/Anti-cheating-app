@@ -8,6 +8,7 @@ import shutil
 import psutil
 import wmi
 import pythoncom
+import sys
 
 from tkinter.filedialog import askopenfilename
 from datetime import datetime
@@ -70,19 +71,21 @@ usb_plugged = False
 
 # Diccionario para los procesos prohibidos
 banned_processes = {
-    # "chrome.exe": "Chrome",
+    "chrome.exe": "Chrome",
     "firefox.exe": "Firefox",
     "opera.exe": "Opera",
     "msedge.exe": "Microsoft Edge",
+    "MicrosoftEdge.exe": "Microsoft Edge",
     "WhatsApp.exe": "Whatsapp",
     "iexplore.exe": "Internet Explorer",
+    "teams.exe": "Teams",
     "Taskmgr.exe": "Administrador de tareas",
     "notepad.exe": "Bloc de notas",
-    # "EXCEL.EXE": "Excel",
-    # "WINWORD.EXE": "Word",
+    "EXCEL.EXE": "Excel",
+    "WINWORD.EXE": "Word",
     "POWERPNT.EXE": "PowerPoint",
     "thunderbird.exe": "Thunderbird",
-    # "HxTsr.exe": "Correo de microsoft",
+    "HxTsr.exe": "Correo de microsoft",
     "FacebookMessenger.exe": "Facebook Messenger"
 }
 
@@ -246,6 +249,9 @@ def monitor_usb(first_scan=False):
                 # Se define como verdadera la bandera para detectar dispositivos USB conectados
                 usb_plugged = True
             except Exception as e:
+                pass
+            """
+            except Exception as e:
                 # Trata de encontrar si es un dispositivo SD
                 try:
                     dc.index("SD")
@@ -258,9 +264,7 @@ def monitor_usb(first_scan=False):
 
                     # Se define como verdadera la bandera para detectar dispositivos SD conectados
                     usb_plugged = True
-                except Exception as e:
-                    pass
-
+            """
         # Si es el primer escaneo se termina el bucle
         if first_scan:
             break
@@ -289,7 +293,7 @@ def upload_test():
     file_name = askopenfilename(
         initialdir="/",
         title="Selecciona el archivo",
-        filetypes=(("Archivos PDF", ".pdf"), ("Archivos word", "docx"), ("Todos los archivos", "*.*"))
+        filetypes=(("Todos los archivos", "*.*"), ("Archivos PDF", ".pdf"), ("Archivos word", "docx"))
     )
     test_file_path = file_name
 
@@ -528,6 +532,11 @@ def main():
             message="Favor de desconectar cualquier medio de almacenamiento USB/SD"
         )
 
+    elif hasattr(sys, 'real_prefix'):
+        messagebox.showerror(
+            title="No se puede iniciar la prueba",
+            message="El programa se esta ejecutando en una maquina virutal"
+        )
     # Si no se encontro nada sospechoso se procede con la ejecución normal del programa
     else:
         # Inicializa variables de tiempo
@@ -567,10 +576,7 @@ def main():
         window.geometry("720x400")
         window.resizable(False, False)
 
-
         # log_file.add_start_time(datetime.now().isoformat())
-
-
 
         # Establece dimensiones de botones
         btn_width = 200
@@ -690,7 +696,7 @@ class StartScreen (tkinter.Frame):
         # Realiza validación para cada campo
         if len(full_name) > 10 and len(full_name.split(" ")) >= 3 and len(group) > 0:
             # Si son correctos los campos se procede a guardar los datos
-            self.callback_get_name(full_name, group)
+            self.callback_get_name(full_name.strip(), group.strip())
         else:
             # Si no son validos los campos muestra mensaje de error pertinente
             self.callback_get_name(None, None)

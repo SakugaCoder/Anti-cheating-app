@@ -8,10 +8,8 @@ import time
 import tarfile
 import sqlite3
 
-
 # Creación de clase AnalyticsUI
 class AnalyticsUI:
-
     # Inicializa la clase
     def __init__(self):
         # Define la configuración de la ventana tamaño, nombre y restricción de cambio de tamaño
@@ -302,6 +300,7 @@ class AnalyticsUI:
                 os.mkdir(f"{self.dir_name}/Results/")
 
             # Itera sobre los archivos de la carpeta seleccionada
+            files = [file for file in files if len(file.split(".aes")) == 2]
             for file in files:
                 # Obtiene nombre del archivo
                 file_name = file.split(".aes")[0]
@@ -323,7 +322,7 @@ class AnalyticsUI:
                 # Cierra archivo tar
                 current_tar.close()
                 # Elimina archivo tar
-                os.remove(tar_filename)
+                # os.remove(tar_filename)
 
                 # Espera 0.5 segundos
                 time.sleep(0.5)
